@@ -136,8 +136,6 @@ days_on_site_choice = st.sidebar.slider('Days on Site', min_value=0, max_value=d
 # 3) MAINPANEL, VISUALS
 #-----------------------------------#
 
-## Inspect the raw data
-st.subheader('Listing prices data')
 # Scenario 1: both city and neighborhood are "Select all"
 if ((city_choice == sorted_city) & (neighborhood_choice == sorted_neighborhood)):
     filtered_df = df[(df['city'].isin(city_choice))
@@ -182,10 +180,15 @@ elif ((city_choice != sorted_city) & (neighborhood_choice != sorted_neighborhood
                      & (df['property_age'] >= min(property_age_choice)) & (df['property_age'] <= max(property_age_choice))
                      & (df['days_on_site'] >= min(days_on_site_choice)) & (df['days_on_site'] <= max(days_on_site_choice))
     ]
+
+'''
+## Step 1: Inspect raw data
+'''
+st.subheader('Listing prices data')
 st.write(filtered_df)
 
 '''
-## Step 1: Create KPI cards
+## Step 2: Create KPI cards
 '''
 # Calculate KPIs
 listings_count = len(pd.unique(filtered_df['listing_id']))
