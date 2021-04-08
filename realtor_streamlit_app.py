@@ -110,7 +110,15 @@ else:
         sorted_city = sorted(df.city.unique())
         city = st.sidebar.selectbox('City', sorted_city)
 
-        #TODO figure out to to add neighbourhood such that it filters based on city selection above
+        sorted_neighborhood = sorted(df.loc[df['city'] == city].neighborhood.unique())
+        final_neighborhoods = []
+        final_neighborhoods = sorted_neighborhood[:]
+        final_neighborhoods.insert(0, 'Select all')
+        neighborhood = st.sidebar.selectbox('Neighborhoods', final_neighborhoods)
+
+        if 'Select all' in neighborhood:
+            neighborhood = sorted_neighborhood
+
         #TODO see if there is a way to search through description and to find all listings that match
 
         sorted_beds = sorted(df.bed.unique())
