@@ -77,6 +77,8 @@ expander_bar1.markdown("""
 ## Conditional dataset creation
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
+    # reset buffer (see documentation here: https://discuss.streamlit.io/t/issue-in-rerunning-file-uploader/6333)
+    uploaded_file.seek(0)
 else:
     df = pd.read_csv('dummy_df.csv')
 
