@@ -4,11 +4,7 @@ from streamlit_metrics import metric, metric_row
 from PIL import Image
 import pandas as pd
 import datetime as dt
-#import base64 as b
-#import matplotlib.pyplot as plt
-#from bs4 import BeautifulSoup
-#import requests
-#import json
+
 #------------------------------------#
 # 1) APP TITLE, DESCRIPTION & LAYOUT
 ## Page expands to full width
@@ -76,10 +72,12 @@ expander_bar1.markdown("""
 
 ## Conditional dataset creation
 if uploaded_file is not None:
+    ## Scenario 1 (user uploads data): read in csv if it exists
     df = pd.read_csv(uploaded_file)
     # reset buffer (see documentation here: https://discuss.streamlit.io/t/issue-in-rerunning-file-uploader/6333)
     uploaded_file.seek(0)
 else:
+    ## Scenario 2: (user has not uploaded data yet): read in default values from input selection in the app
     df = pd.read_csv('dummy_df.csv')
 
 ## Change data types
@@ -88,54 +86,43 @@ df['bed'] = pd.to_numeric(df['bed'])
 df['bath'] = pd.to_numeric(df['bath'])
 df['price'] = pd.to_numeric(df['price'])
 df['strata_fee'] = pd.to_numeric(df['strata_fee'])
+df['sqft'] = pd.to_numeric(df['sqft'])
+df['property_age'] = pd.to_numeric(df['property_age'].str[9:13])
 
 
+### date stuff
+today = dt.datetime.now()
+year = today.year
+d = df.scrape_date
+d1 = pd.DatetimeIndex(d).month.astype(str) + "/" + pd.DatetimeIndex(d).year.astype(str)
+d2= sorted(d1.unique())
+scrape_dt = st.sidebar.selectbox('Date Retrieved', d2)
+###
+sorted_city = sorted(df.city.unique())
+city_choice = st.sidebar.selectbox('City', sorted_city)
 
-## Scenario 1 (user uploads data): read in csv if it exists
-if uploaded_file is not None:
-    input_df = pd.read_csv(uploaded_file)
+sorted_neighborhood = sorted(df.loc[df['city'] == city_choice].neighborhood.unique())
+final_neighborhoods = []
+final_neighborhoods = sorted_neighborhood[:]
+final_neighborhoods.insert(0, 'Select all')
+neighborhood_choice = st.sidebar.selectbox('Neighborhoods', final_neighborhoods)
+if 'Select all' in neighborhood_choice:
+    neighborhood_choice = sorted_neighborhood
 
-## Scenario 2: (user has not uploaded data yet): read in default values from input selection in the app
-else:
-    def user_input_features():
+#TODO see if there is a way to search through description and to find all listings that match
 
-        ### date stuff
-        today = dt.datetime.now()
-        year = today.year
-        d = df.scrape_date
-        d1 = pd.DatetimeIndex(d).month.astype(str) + "/" + pd.DatetimeIndex(d).year.astype(str)
-        d2= sorted(d1.unique())
-        scrape_dt = st.sidebar.selectbox('Date Retrieved', d2)
-        ###
-        sorted_city = sorted(df.city.unique())
-        city = st.sidebar.selectbox('City', sorted_city)
+sorted_beds = sorted(df.bed.unique())
+beds_choice = st.sidebar.multiselect('Bedrooms', sorted_beds, sorted_beds)
+sorted_baths = sorted(df.bath.unique())
+baths_choice = st.sidebar.multiselect('Bathrooms', sorted_baths, sorted_baths)
+sorted_property_type = sorted(df.property_type.unique())
+property_type_choice = st.sidebar.multiselect('Property Type', sorted_property_type, sorted_property_type)
+price_choice = st.sidebar.slider('Listing Price', min_value=200000, max_value=5000000, value=(200000,5000000),step=100000)
+sqft_choice = st.sidebar.slider('Square Feet', min_value=300, max_value=10000, value=(300,10000),step=50)
+property_age_choice = st.sidebar.slider('Property Age', min_value=1900, max_value=year, value=(1900,year),step=1)
+days = max(df.days_on_site)
+days_on_site_choice = st.sidebar.slider('Days on Site', min_value=0, max_value=days, value=(0,days),step=1)
 
-        sorted_neighborhood = sorted(df.loc[df['city'] == city].neighborhood.unique())
-        final_neighborhoods = []
-        final_neighborhoods = sorted_neighborhood[:]
-        final_neighborhoods.insert(0, 'Select all')
-        neighborhood = st.sidebar.selectbox('Neighborhoods', final_neighborhoods)
-
-        if 'Select all' in neighborhood:
-            neighborhood = sorted_neighborhood
-
-        #TODO see if there is a way to search through description and to find all listings that match
-
-        sorted_beds = sorted(df.bed.unique())
-        beds = st.sidebar.multiselect('Bedrooms', sorted_beds, sorted_beds)
-        sorted_baths = sorted(df.bath.unique())
-        baths = st.sidebar.multiselect('Bathrooms', sorted_baths, sorted_baths)
-        sorted_property_type = sorted(df.property_type.unique())
-        property_type = st.sidebar.multiselect('Property Type', sorted_property_type, sorted_property_type)
-        price = st.sidebar.slider('Listing Price', min_value=200000, max_value=5000000, value=(200000,5000000),step=100000)
-        sqft = st.sidebar.slider('Square Feet', min_value=300, max_value=10000, value=(300,10000),step=50)
-        property_age = st.sidebar.slider('Property Age', min_value=1900, max_value=year, value=(1900,year),step=1)
-        days = max(df.days_on_site)
-        days_on_site = st.sidebar.slider('Days on Site', min_value=0, max_value=days, value=(0,days),step=1)
-
-    input_df = user_input_features()
-
-# TODO: MAIN PANEL SHIT @shannons part :)
 
 #-----------------------------------#
 # 3) MAINPANEL, VISUALS
@@ -143,15 +130,35 @@ else:
 
 ## Inspect the raw data
 st.subheader('Listing prices data')
-st.write(df)
+if neighborhood_choice == sorted_neighborhood:
+    filtered_df = df[(df['city'] == city_choice)
+                     & (df['neighborhood'].isin(neighborhood_choice))
+                     & (df['bed'].isin(beds_choice))
+                     & (df['bath'].isin(baths_choice))
+                     & (df['property_type'].isin(property_type_choice))
+                     & (df['price'] >= min(price_choice)) & (df['price'] <= max(price_choice))
+                     & (df['property_age'] >= min(property_age_choice)) & (df['property_age'] <= max(property_age_choice))
+                     & (df['days_on_site'] >= min(days_on_site_choice)) & (df['days_on_site'] <= max(days_on_site_choice))
+    ]
+else:
+    filtered_df = df[(df['city'] == city_choice)
+                     & (df['neighborhood'] == neighborhood_choice)
+                     & (df['neighborhood'].isin(neighborhood_choice))
+                     & (df['bed'].isin(beds_choice))
+                     & (df['bath'].isin(baths_choice))
+                     & (df['property_type'].isin(property_type_choice))
+                     & (df['price'] >= min(price_choice)) & (df['price'] <= max(price_choice))
+                     & (df['property_age'] >= min(property_age_choice)) & (df['property_age'] <= max(property_age_choice))
+                     & (df['days_on_site'] >= min(days_on_site_choice)) & (df['days_on_site'] <= max(days_on_site_choice))
+    ]
+st.write(filtered_df)
 
 '''
 ## Step 1: Create KPI cards
 '''
 # Calculate KPIs
-listings_count = len(pd.unique(df['listing_id']))
-# TODO: calculate average days in market
-avg_market_days = 'placeholder'
+listings_count = len(pd.unique(filtered_df['listing_id']))
+avg_listed_days = round(filtered_df['days_on_site'].mean())
 
 
 # Create visuals
@@ -159,7 +166,7 @@ st.subheader('Vancouver Housing Inventory')
 metric_row(
     {
         "Number of listings": listings_count,
-        "Average days on market": avg_market_days
+        "Average days listed on site": avg_listed_days
     }
 )
 
@@ -167,7 +174,7 @@ metric_row(
 ## Step 3: Create graphs
 '''
 # Create dataframe with count of unique listings by date
-df_inventory = df[['scrape_date', 'listing_id']].groupby(['scrape_date']).agg(['nunique']).reset_index()
+df_inventory = filtered_df[['scrape_date', 'listing_id']].groupby(['scrape_date']).agg(['nunique']).reset_index()
 df_inventory.columns = ['scrape_date', 'listings_count']
 
 st.subheader('Number of listings over time')
@@ -177,7 +184,7 @@ st.line_chart(df_inventory.set_index('scrape_date'))
 ## Step 4: Create tables
 '''
 # Create dataframe with count of listings by property type and number of bedrooms
-df_prop_bed = df[['listing_id', 'property_type', 'bed']].groupby(['property_type', 'bed']).agg(['nunique']).reset_index()
+df_prop_bed = filtered_df[['listing_id', 'property_type', 'bed']].groupby(['property_type', 'bed']).agg(['nunique']).reset_index()
 df_prop_bed.columns = ['property_type', 'bed', 'listings_count']
 df_prop_bed['bed'] = df_prop_bed['bed'].astype(str) + ' Bedroom(s)'
 
@@ -188,9 +195,12 @@ df_house_bed = df_prop_bed[df_prop_bed['property_type'] == 'House']
 df_rec_bed = df_prop_bed[df_prop_bed['property_type'] == 'Recreational']
 df_town_bed = df_prop_bed[df_prop_bed['property_type'] == 'Townhouse']
 
-# TODO: create separate tabs for the 5 tables, potentially using Bokeh (https://discuss.streamlit.io/t/bokeh-can-provide-layouts-tabs-advanced-tables-and-js-callbacks-in-streamlit/1108)
-st.write(df_apt_bed)
-st.write(df_duplex_bed)
-st.write(df_house_bed)
-st.write(df_rec_bed)
-st.write(df_town_bed)
+def show_nonempty_df(df):
+    if not df.empty:
+        st.write(df)
+
+show_nonempty_df(df_apt_bed)
+show_nonempty_df(df_duplex_bed)
+show_nonempty_df(df_house_bed)
+show_nonempty_df(df_rec_bed)
+show_nonempty_df(df_town_bed)
