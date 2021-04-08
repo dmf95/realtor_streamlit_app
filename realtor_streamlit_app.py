@@ -99,9 +99,17 @@ d2= sorted(d1.unique())
 scrape_dt = st.sidebar.selectbox('Date Retrieved', d2)
 ###
 sorted_city = sorted(df.city.unique())
-city_choice = st.sidebar.selectbox('City', sorted_city)
+final_city = []
+final_city = sorted_city[:]
+final_city.insert(0, 'Select all')
+city_choice = st.sidebar.selectbox('City', final_city)
+if 'Select all' in city_choice:
+    city_choice = sorted_city
 
-sorted_neighborhood = sorted(df.loc[df['city'] == city_choice].neighborhood.unique())
+if city_choice == sorted_city:
+    sorted_neighborhood = sorted(df.loc[df['city'].isin(city_choice)].neighborhood.unique())
+else:
+    sorted_neighborhood = sorted(df.loc[df['city'] == city_choice].neighborhood.unique())
 final_neighborhoods = []
 final_neighborhoods = sorted_neighborhood[:]
 final_neighborhoods.insert(0, 'Select all')
@@ -130,7 +138,30 @@ days_on_site_choice = st.sidebar.slider('Days on Site', min_value=0, max_value=d
 
 ## Inspect the raw data
 st.subheader('Listing prices data')
-if neighborhood_choice == sorted_neighborhood:
+# Scenario 1: both city and neighborhood are "Select all"
+if ((city_choice == sorted_city) & (neighborhood_choice == sorted_neighborhood)):
+    filtered_df = df[(df['city'].isin(city_choice))
+                     & (df['neighborhood'].isin(neighborhood_choice))
+                     & (df['bed'].isin(beds_choice))
+                     & (df['bath'].isin(baths_choice))
+                     & (df['property_type'].isin(property_type_choice))
+                     & (df['price'] >= min(price_choice)) & (df['price'] <= max(price_choice))
+                     & (df['property_age'] >= min(property_age_choice)) & (df['property_age'] <= max(property_age_choice))
+                     & (df['days_on_site'] >= min(days_on_site_choice)) & (df['days_on_site'] <= max(days_on_site_choice))
+    ]
+# Scenario 2: city is "Select all" but neighborhood is specified
+elif ((city_choice == sorted_city) & (neighborhood_choice != sorted_neighborhood)):
+    filtered_df = df[(df['city'].isin(city_choice))
+                     & (df['neighborhood'] == neighborhood_choice)
+                     & (df['bed'].isin(beds_choice))
+                     & (df['bath'].isin(baths_choice))
+                     & (df['property_type'].isin(property_type_choice))
+                     & (df['price'] >= min(price_choice)) & (df['price'] <= max(price_choice))
+                     & (df['property_age'] >= min(property_age_choice)) & (df['property_age'] <= max(property_age_choice))
+                     & (df['days_on_site'] >= min(days_on_site_choice)) & (df['days_on_site'] <= max(days_on_site_choice))
+    ]
+# Scenario 3: city is specified but neighborhood is "Select all"
+elif ((city_choice != sorted_city) & (neighborhood_choice == sorted_neighborhood)):
     filtered_df = df[(df['city'] == city_choice)
                      & (df['neighborhood'].isin(neighborhood_choice))
                      & (df['bed'].isin(beds_choice))
@@ -140,10 +171,10 @@ if neighborhood_choice == sorted_neighborhood:
                      & (df['property_age'] >= min(property_age_choice)) & (df['property_age'] <= max(property_age_choice))
                      & (df['days_on_site'] >= min(days_on_site_choice)) & (df['days_on_site'] <= max(days_on_site_choice))
     ]
-else:
+# Scenario 4: both city and neighborhood are specified
+elif ((city_choice != sorted_city) & (neighborhood_choice != sorted_neighborhood)):
     filtered_df = df[(df['city'] == city_choice)
                      & (df['neighborhood'] == neighborhood_choice)
-                     & (df['neighborhood'].isin(neighborhood_choice))
                      & (df['bed'].isin(beds_choice))
                      & (df['bath'].isin(baths_choice))
                      & (df['property_type'].isin(property_type_choice))
