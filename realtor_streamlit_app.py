@@ -31,7 +31,7 @@ This app helps visualize real estate listings data. Use the Sample dataset, or u
 
 expander_bar = st.beta_expander("About")
 expander_bar.markdown("""
-* **Python libraries:** base64, pandas, streamlit, numpy, matplotlib, seaborn, BeautifulSoup, requests, json, time
+* **Python libraries:**  datetime, pandas, pillow, streamlit-metrics, streamlit
 * **Sample data source:** [CoinMarketCap](http://rew.ca).
 * **Credit:** Layout adapted from various example applications *[Build 12 Data Science Apps with Python and Streamlit - Full Course](https://www.youtube.com/watch?v=JwSS70SZdyM&ab_channel=freeCodeCamp.org)*  by [Chanin Nantasenamat](https://github.com/dataprofessor).
 """)
@@ -184,8 +184,11 @@ elif ((city_choice != sorted_city) & (neighborhood_choice != sorted_neighborhood
 '''
 ## Step 1: Inspect raw data
 '''
-st.subheader('Listing prices data')
-st.write(filtered_df)
+
+expander_bar2 = st.beta_expander("Click to explore raw data table")
+expander_bar2.write(filtered_df)
+#st.subheader('Listing prices data')
+#st.write(filtered_df)
 
 '''
 ## Step 2: Create KPI cards
@@ -215,7 +218,7 @@ st.subheader('Number of listings over time')
 st.line_chart(df_inventory.set_index('scrape_date'))
 
 '''
-## Step 4: Create tables
+## Step 4: Create summary tables
 '''
 # Create dataframe with count of listings by property type and number of bedrooms
 df_prop_bed = filtered_df[['listing_id', 'property_type', 'bed']].groupby(['property_type', 'bed']).agg(['nunique']).reset_index()
