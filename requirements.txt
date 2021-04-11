@@ -1,0 +1,6 @@
+streamlit==0.80.0
+streamlit-metrics==0.1.0
+pandas==1.2.3
+datetime==4.3
+pillow==8.2.0
+
